@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """ PyCube
 Author: Michael King
 
@@ -25,7 +26,7 @@ class PyCube:
     def __init__(self):
         pygame.init()
         self.width = 800
-        self.height = 600
+        self.height = 800
 
         pygame.display.set_mode((self.width, self.height), DOUBLEBUF | OPENGL)
         pygame.display.set_caption('PyCube')
@@ -40,15 +41,23 @@ class PyCube:
 
         # Default view
         glMatrixMode(GL_PROJECTION)
-        gluPerspective(45, (self.width / self.height), 0.5, 40)
-        glTranslatef(0.0, 0.0, -17.5)
+        gluPerspective(30, (self.width / self.height), 0.5, 4000)
+        #gluLookAt(1, 1, 1, 0.0,  0.0,  0.0, 0.0,  1.0,  0.0) 
+        glTranslatef(0.0, 0.0, -22)
         padding(0.3)
+        self.screenshot_idx = 1
 
     def create_window(self, width, height):
         '''Updates the window width and height '''
         # pygame.display.set_caption("Press ESC to quit")
         pygame.display.set_mode((width, height), DOUBLEBUF | OPENGL | RESIZABLE)
         gluPerspective(45, (width / height), 0.5, 40)
+
+    def capture_screenshot(self):
+        buffer = glReadPixels(0, 0, self.width, self.height, GL_RGBA, GL_UNSIGNED_BYTE)
+        image_data = pygame.image.fromstring(buffer, (self.width, self.height), 'RGBA')
+        pygame.image.save(image_data, f"out{self.screenshot_idx}.png")
+        self.screenshot_idx += 1
 
     def run(self):
 
@@ -66,6 +75,11 @@ class PyCube:
         inc_y = 0
         accum = (1, 0, 0, 0)
         zoom = 1
+
+        rot_x = normalize(axisangle_to_q((1.0, 0.0, 0.0), pi / 4 ))
+        rot_y = normalize(axisangle_to_q((0.0, 1.0, 0.0), pi / 4 ))
+        accum = q_mult(accum, rot_x)
+        accum = q_mult(accum, rot_y)
 
         def update():
 
@@ -352,6 +366,16 @@ class PyCube:
                         mvs = 'fFbBlLrRuUdD'
                         scrambled = ''.join(random.choice(mvs) for _ in range(20))
                         self.scramble(scrambled)
+
+                    if event.key == pygame.K_ESCAPE:
+                        sys.exit()
+
+                    if event.key == pygame.K_x:
+                        print(accum)
+                        mvs = 'fFbBlLrRuUdD'
+                        scrambled = ''.join(random.choice(mvs) for _ in range(20))
+                        self.scramble(scrambled)
+                        self.capture_screenshot()
 
                 if event.type == pygame.KEYUP:
                     # Stoping rotation
